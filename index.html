@@ -1,0 +1,2069 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>---</title>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport" />
+<meta charset=utf-8></head>
+<body></body>
+<script language=javascript>
+(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+'use strict'
+
+module.exports = findCover
+
+var coverDistance = require('./is-covered')
+
+function len2(a, b) {
+  return Math.pow(a[0]-b[0], 2) + Math.pow(a[1]-b[1], 2)
+}
+
+function findCover(lines, h) {
+  var cover = []
+  var ids   = new Array(lines.length)
+  for(var i=0; i<lines.length; ++i) {
+    ids[i] = i
+  }
+
+  function longestLine(ids) {
+    var l2 = 0.0
+    var longest = 0
+    for(var i=0; i<ids.length; ++i) {
+      var j = ids[i]
+      var L = lines[j]
+      var l2i = len2(L[0], L[1])
+      if(l2i > l2) {
+        l2 = l2i
+        longest = j
+      }
+    }
+    return longest
+  }
+
+  function filterCover(ids, f) {
+    var ptr = 0
+    for(var i=0; i<ids.length; ++i) {
+      var j = ids[i]
+      var e = lines[j]
+      if(coverDistance(f[0][0], f[0][1], f[1][0], f[1][1],
+                       e[0][0], e[0][1], e[1][0], e[1][1]) > h) {
+        ids[ptr++] = j
+      }
+    }
+    ids.length = ptr
+  }
+
+  while(ids.length > 0) {
+    var longest = longestLine(ids)
+    cover.push(longest)
+    filterCover(ids, lines[longest])
+  }
+
+  return cover
+}
+
+},{"./is-covered":3}],2:[function(require,module,exports){
+'use strict'
+
+module.exports = findCover
+
+var coverDistance = require('./is-covered')
+
+function len2(a, b) {
+  return Math.pow(a[0]-b[0], 2) + Math.pow(a[1]-b[1], 2)
+}
+
+function findCover(lines, h) {
+  var cover = []
+  var ids   = new Array(lines.length)
+  for(var i=0; i<lines.length; ++i) {
+    ids[i] = i
+  }
+
+  function numCovered(ids, f) {
+    var count = 0
+    for(var i=0; i<ids.length; ++i) {
+      var j = ids[i]
+      var e = lines[j]
+      if(coverDistance(f[0][0], f[0][1], f[1][0], f[1][1],
+                       e[0][0], e[0][1], e[1][0], e[1][1]) <= h) {
+        count += 1
+      }
+    }
+    return count
+  }
+  
+  function longestLine(ids) {
+    var l2 = 0.0
+    var longest = 0
+    for(var i=0; i<ids.length; ++i) {
+      var j = ids[i]
+      var L = lines[j]
+      var l2i = numCovered(ids, L)
+      if(l2i > l2) {
+        l2 = l2i
+        longest = j
+      }
+    }
+    return longest
+  }
+
+  function filterCover(ids, f) {
+    var ptr = 0
+    for(var i=0; i<ids.length; ++i) {
+      var j = ids[i]
+      var e = lines[j]
+      if(coverDistance(f[0][0], f[0][1], f[1][0], f[1][1],
+                       e[0][0], e[0][1], e[1][0], e[1][1]) > h) {
+        ids[ptr++] = j
+      }
+    }
+    ids.length = ptr
+  }
+
+  while(ids.length > 0) {
+    var longest = longestLine(ids)
+    cover.push(longest)
+    filterCover(ids, lines[longest])
+  }
+
+  return cover
+}
+
+},{"./is-covered":3}],3:[function(require,module,exports){
+'use strict'
+
+module.exports = coverDistance
+
+function hypot2(a, b) {
+  return Math.pow(a,2) + Math.pow(b,2)
+}
+
+function segDistance(l2, bax, bay, bx, by, pax, pay, px, py) {
+  var t = pax * bax + pay * bay
+  if(t < 0) {
+    return hypot2(pax, pay)
+  }
+  if(t > l2) {
+    return hypot2(px-bx, py-by)
+  }
+  t /= l2
+  return hypot2(t * bax - pax, t * bay - pay)
+}
+
+function coverDistance(ax0, ay0, ax1, ay1,
+                       bx0, by0, bx1, by1) {
+  var dx = ax1 - ax0
+  var dy = ay1 - ay0
+  var l2 = hypot2(dx, dy)
+
+  var dx0 = bx0 - ax0
+  var dy0 = by0 - ay0
+
+  var dx1 = bx1 - ax0
+  var dy1 = by1 - ay0
+
+  if(l2 < 1e-8) {
+    return Math.sqrt(Math.max(hypot2(dx0, dy0), hypot2(dx1, dy1)))
+  }
+
+  return Math.sqrt(Math.max(
+    segDistance(l2, dx, dy, ax1, ay1, dx0, dy0, bx0, by0) ,
+    segDistance(l2, dx, dy, ax1, ay1, dx1, dy1, bx1, by1)
+  ))
+}
+
+},{}],4:[function(require,module,exports){
+var size = require('element-size')
+
+module.exports = fit
+
+var scratch = new Float32Array(2)
+
+function fit(canvas, parent, scale) {
+  canvas.style.position = canvas.style.position || 'absolute'
+  canvas.style.top = 0
+  canvas.style.left = 0
+
+  resize.scale  = parseFloat(scale || 1)
+  resize.parent = parent
+
+  return resize()
+
+  function resize() {
+    var p = resize.parent || canvas.parentNode
+    if (typeof p === 'function') {
+      var dims   = p(scratch) || scratch
+      var width  = dims[0]
+      var height = dims[1]
+    } else
+    if (p && p !== document.body) {
+      var psize  = size(p)
+      var width  = psize[0]|0
+      var height = psize[1]|0
+    } else {
+      var width  = window.innerWidth
+      var height = window.innerHeight
+    }
+
+    canvas.width = width * resize.scale
+    canvas.height = height * resize.scale
+    canvas.style.width = width + 'px'
+    canvas.style.height = height + 'px'
+
+    return resize
+  }
+}
+
+},{"element-size":5}],5:[function(require,module,exports){
+module.exports = getSize
+
+function getSize(element) {
+  // Handle cases where the element is not already
+  // attached to the DOM by briefly appending it
+  // to document.body, and removing it again later.
+  if (element === window || element === document.body) {
+    return [window.innerWidth, window.innerHeight]
+  }
+
+  if (!element.parentNode) {
+    var temporary = true
+    document.body.appendChild(element)
+  }
+
+  var bounds = element.getBoundingClientRect()
+  var styles = getComputedStyle(element)
+  var height = (bounds.height|0)
+    + parse(styles.getPropertyValue('margin-top'))
+    + parse(styles.getPropertyValue('margin-bottom'))
+  var width  = (bounds.width|0)
+    + parse(styles.getPropertyValue('margin-left'))
+    + parse(styles.getPropertyValue('margin-right'))
+
+  if (temporary) {
+    document.body.removeChild(element)
+  }
+
+  return [width, height]
+}
+
+function parse(prop) {
+  return parseFloat(prop) || 0
+}
+
+},{}],6:[function(require,module,exports){
+'use strict'
+
+module.exports = mouseListen
+
+var mouse = require('mouse-event')
+
+function mouseListen(element, callback) {
+
+  if(!callback) {
+    callback = element
+    element = window
+  }
+
+  var buttonState = 0
+  var x = 0
+  var y = 0
+  var mods = {
+    shift:   false,
+    alt:     false,
+    control: false,
+    meta:    false
+  }
+  var attached = false
+
+  function updateMods(ev) {
+    var changed = false
+    if('altKey' in ev) {
+      changed = changed || ev.altKey !== mods.alt
+      mods.alt = !!ev.altKey
+    }
+    if('shiftKey' in ev) {
+      changed = changed || ev.shiftKey !== mods.shift
+      mods.shift = !!ev.shiftKey
+    }
+    if('ctrlKey' in ev) {
+      changed = changed || ev.ctrlKey !== mods.control
+      mods.control = !!ev.ctrlKey
+    }
+    if('metaKey' in ev) {
+      changed = changed || ev.metaKey !== mods.meta
+      mods.meta = !!ev.metaKey
+    }
+    return changed
+  }
+
+  function handleEvent(nextButtons, ev) {
+    var nextX = mouse.x(ev)
+    var nextY = mouse.y(ev)
+    if('buttons' in ev) {
+      nextButtons = ev.buttons|0
+    }
+    if(nextButtons !== buttonState ||
+       nextX !== x ||
+       nextY !== y ||
+       updateMods(ev)) {
+      buttonState = nextButtons|0
+      x = nextX||0
+      y = nextY||0
+      callback(buttonState, x, y, mods)
+    }
+  }
+
+  function clearState(ev) {
+    handleEvent(0, ev)
+  }
+
+  function handleBlur() {
+    if(buttonState ||
+      x ||
+      y ||
+      mods.shift ||
+      mods.alt ||
+      mods.meta ||
+      mods.control) {
+
+      x = y = 0
+      buttonState = 0
+      mods.shift = mods.alt = mods.control = mods.meta = false
+      callback(0, 0, 0, mods)
+    }
+  }
+
+  function handleMods(ev) {
+    if(updateMods(ev)) {
+      callback(buttonState, x, y, mods)
+    }
+  }
+
+  function handleMouseMove(ev) {
+    if(mouse.buttons(ev) === 0) {
+      handleEvent(0, ev)
+    } else {
+      handleEvent(buttonState, ev)
+    }
+  }
+
+  function handleMouseDown(ev) {
+    handleEvent(buttonState | mouse.buttons(ev), ev)
+  }
+
+  function handleMouseUp(ev) {
+    handleEvent(buttonState & ~mouse.buttons(ev), ev)
+  }
+
+  function attachListeners() {
+    if(attached) {
+      return
+    }
+    attached = true
+
+    element.addEventListener('mousemove', handleMouseMove)
+
+    element.addEventListener('mousedown', handleMouseDown)
+
+    element.addEventListener('mouseup', handleMouseUp)
+
+    element.addEventListener('mouseleave', clearState)
+    element.addEventListener('mouseenter', clearState)
+    element.addEventListener('mouseout', clearState)
+    element.addEventListener('mouseover', clearState)
+
+    element.addEventListener('blur', handleBlur)
+
+    element.addEventListener('keyup', handleMods)
+    element.addEventListener('keydown', handleMods)
+    element.addEventListener('keypress', handleMods)
+
+    if(element !== window) {
+      window.addEventListener('blur', handleBlur)
+
+      window.addEventListener('keyup', handleMods)
+      window.addEventListener('keydown', handleMods)
+      window.addEventListener('keypress', handleMods)
+    }
+  }
+
+  function detachListeners() {
+    if(!attached) {
+      return
+    }
+    attached = false
+
+    element.removeEventListener('mousemove', handleMouseMove)
+
+    element.removeEventListener('mousedown', handleMouseDown)
+
+    element.removeEventListener('mouseup', handleMouseUp)
+
+    element.removeEventListener('mouseleave', clearState)
+    element.removeEventListener('mouseenter', clearState)
+    element.removeEventListener('mouseout', clearState)
+    element.removeEventListener('mouseover', clearState)
+
+    element.removeEventListener('blur', handleBlur)
+
+    element.removeEventListener('keyup', handleMods)
+    element.removeEventListener('keydown', handleMods)
+    element.removeEventListener('keypress', handleMods)
+
+    if(element !== window) {
+      window.removeEventListener('blur', handleBlur)
+
+      window.removeEventListener('keyup', handleMods)
+      window.removeEventListener('keydown', handleMods)
+      window.removeEventListener('keypress', handleMods)
+    }
+  }
+
+  //Attach listeners
+  attachListeners()
+
+  var result = {
+    element: element
+  }
+
+  Object.defineProperties(result, {
+    enabled: {
+      get: function() { return attached },
+      set: function(f) {
+        if(f) {
+          attachListeners()
+        } else {
+          detachListeners
+        }
+      },
+      enumerable: true
+    },
+    buttons: {
+      get: function() { return buttonState },
+      enumerable: true
+    },
+    x: {
+      get: function() { return x },
+      enumerable: true
+    },
+    y: {
+      get: function() { return y },
+      enumerable: true
+    },
+    mods: {
+      get: function() { return mods },
+      enumerable: true
+    }
+  })
+
+  return result
+}
+
+},{"mouse-event":7}],7:[function(require,module,exports){
+'use strict'
+
+function mouseButtons(ev) {
+  if(typeof ev === 'object') {
+    if('buttons' in ev) {
+      return ev.buttons
+    } else if('which' in ev) {
+      var b = ev.which
+      if(b === 2) {
+        return 4
+      } else if(b === 3) {
+        return 2
+      } else if(b > 0) {
+        return 1<<(b-1)
+      }
+    } else if('button' in ev) {
+      var b = ev.button
+      if(b === 1) {
+        return 4
+      } else if(b === 2) {
+        return 2
+      } else if(b >= 0) {
+        return 1<<b
+      }
+    }
+  }
+  return 0
+}
+exports.buttons = mouseButtons
+
+function mouseElement(ev) {
+  return ev.target || ev.srcElement || window
+}
+exports.element = mouseElement
+
+function mouseRelativeX(ev) {
+  if(typeof ev === 'object') {
+    if('offsetX' in ev) {
+      return ev.offsetX
+    }
+    var target = mouseElement(ev)
+    var bounds = target.getBoundingClientRect()
+    return ev.clientX - bounds.left
+  }
+  return 0
+}
+exports.x = mouseRelativeX
+
+function mouseRelativeY(ev) {
+  if(typeof ev === 'object') {
+    if('offsetY' in ev) {
+      return ev.offsetY
+    }
+    var target = mouseElement(ev)
+    var bounds = target.getBoundingClientRect()
+    return ev.clientY - bounds.top
+  }
+  return 0
+}
+exports.y = mouseRelativeY
+
+},{}],8:[function(require,module,exports){
+/*  Ported from Mukesh Prasad's public domain code:
+ *    http://tog.acm.org/resources/GraphicsGems/gemsii/xlines.c
+ *
+ *   This function computes whether two line segments,
+ *   respectively joining the input points (x1,y1) -- (x2,y2)
+ *   and the input points (x3,y3) -- (x4,y4) intersect.
+ *   If the lines intersect, the return value is an array
+ *   containing coordinates of the point of intersection.
+ *
+ *   Params
+ *        x1, y1,  x2, y2   Coordinates of endpoints of one segment.
+ *        x3, y3,  x4, y4   Coordinates of endpoints of other segment.
+ *
+ *   Also Accepts:
+ *    4 objects with the minimal object structure { x: .., y: ..}
+ *    4 arrays where [0] is x and [1] is y
+ *
+ *   The value returned by the function is one of:
+ *
+ *        undefined - no intersection
+ *        array     - intersection
+ *        true      - colinear
+ */
+
+function segseg(x1, y1, x2, y2, x3, y3, x4, y4) {
+
+  if (arguments.length === 4) {
+    var p1 = x1;
+    var p2 = y1;
+    var p3 = x2;
+    var p4 = y2;
+
+    // assume array [x, y]
+    if (p1.length && p1.length === 2) {
+      x1 = p1[0];
+      y1 = p1[1];
+      x2 = p2[0];
+      y2 = p2[1];
+      x3 = p3[0];
+      y3 = p3[1];
+      x4 = p4[0];
+      y4 = p4[1];
+
+    // assume object with obj.x and obj.y
+    } else {
+      x1 = p1.x;
+      y1 = p1.y;
+      x2 = p2.x;
+      y2 = p2.y;
+      x3 = p3.x;
+      y3 = p3.y;
+      x4 = p4.x;
+      y4 = p4.y;
+    }
+  }
+
+
+  var a1, a2, b1, b2, c1, c2; // Coefficients of line eqns.
+  var r1, r2, r3, r4;         // 'Sign' values
+  var denom, offset;          // Intermediate values
+  var x, y;                   // Intermediate return values
+
+  // Compute a1, b1, c1, where line joining points 1 and 2
+  // is "a1 x  +  b1 y  +  c1  =  0".
+  a1 = y2 - y1;
+  b1 = x1 - x2;
+  c1 = x2 * y1 - x1 * y2;
+
+  // Compute r3 and r4.
+  r3 = a1 * x3 + b1 * y3 + c1;
+  r4 = a1 * x4 + b1 * y4 + c1;
+
+  // Check signs of r3 and r4.  If both point 3 and point 4 lie on
+  // same side of line 1, the line segments do not intersect.
+  if ( r3 !== 0 && r4 !== 0 && ((r3 >= 0 && r4 >= 0) || (r3 < 0 && r4 < 0))) {
+    return; // no intersection
+  }
+
+
+  // Compute a2, b2, c2
+  a2 = y4 - y3;
+  b2 = x3 - x4;
+  c2 = x4 * y3 - x3 * y4;
+
+  // Compute r1 and r2
+  r1 = a2 * x1 + b2 * y1 + c2;
+  r2 = a2 * x2 + b2 * y2 + c2;
+
+  // Check signs of r1 and r2.  If both point 1 and point 2 lie
+  // on same side of second line segment, the line segments do
+  // not intersect.
+  if (r1 !== 0 && r2 !== 0 && ((r1 >= 0 && r2 >= 0) || (r1 < 0 && r2 < 0))) {
+    return; // no intersections
+  }
+
+  // Line segments intersect: compute intersection point.
+  denom = a1 * b2 - a2 * b1;
+
+  if ( denom === 0 ) {
+    return true;
+  }
+
+  offset = denom < 0 ? - denom / 2 : denom / 2;
+
+  x = b1 * c2 - b2 * c1;
+  y = a2 * c1 - a1 * c2;
+
+  return [
+    ( x < 0 ? x : x ) / denom,
+    ( y < 0 ? y : y ) / denom,
+  ];
+};
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = segseg;
+}
+
+if (typeof window !== 'undefined') {
+  window.segseg = window.segseg || segseg;
+}
+
+},{}],9:[function(require,module,exports){
+;(function inject(clean, precision, undef) {
+
+  var isArray = function (a) {
+    return Object.prototype.toString.call(a) === "[object Array]";
+  };
+
+  function Vec2(x, y) {
+    if (!(this instanceof Vec2)) {
+      return new Vec2(x, y);
+    }
+
+    if (isArray(x)) {
+      y = x[1];
+      x = x[0];
+    } else if('object' === typeof x && x) {
+      y = x.y;
+      x = x.x;
+    }
+
+    this.x = Vec2.clean(x || 0);
+    this.y = Vec2.clean(y || 0);
+  }
+
+  Vec2.prototype = {
+    change : function(fn) {
+      if (typeof fn === 'function') {
+        if (this.observers) {
+          this.observers.push(fn);
+        } else {
+          this.observers = [fn];
+        }
+      } else if (this.observers && this.observers.length) {
+        for (var i=this.observers.length-1; i>=0; i--) {
+          this.observers[i](this, fn);
+        }
+      }
+
+      return this;
+    },
+
+    ignore : function(fn) {
+      if (this.observers) {
+        if (!fn) {
+          this.observers = [];
+        } else {
+          var o = this.observers, l = o.length;
+          while(l--) {
+            o[l] === fn && o.splice(l, 1);
+          }
+        }
+      }
+      return this;
+    },
+
+    // set x and y
+    set: function(x, y, silent) {
+      if('number' != typeof x) {
+        silent = y;
+        y = x.y;
+        x = x.x;
+      }
+
+      if(this.x === x && this.y === y) {
+        return this;
+      }
+
+      var orig = null;
+      if (this.observers && this.observers.length) {
+        orig = this.clone();
+      }
+
+      this.x = Vec2.clean(x);
+      this.y = Vec2.clean(y);
+
+      if(silent !== false) {
+        return this.change(orig);
+      }
+    },
+
+    // reset x and y to zero
+    zero : function() {
+      return this.set(0, 0);
+    },
+
+    // return a new vector with the same component values
+    // as this one
+    clone : function() {
+      return new (this.constructor)(this.x, this.y);
+    },
+
+    // negate the values of this vector
+    negate : function(returnNew) {
+      if (returnNew) {
+        return new (this.constructor)(-this.x, -this.y);
+      } else {
+        return this.set(-this.x, -this.y);
+      }
+    },
+
+    // Add the incoming `vec2` vector to this vector
+    add : function(vec2, returnNew) {
+      if (!returnNew) {
+        this.x += vec2.x; this.y += vec2.y;
+        return this.change();
+      } else {
+        // Return a new vector if `returnNew` is truthy
+        return new (this.constructor)(
+          this.x + vec2.x,
+          this.y + vec2.y
+        );
+      }
+    },
+
+    // Subtract the incoming `vec2` from this vector
+    subtract : function(vec2, returnNew) {
+      if (!returnNew) {
+        this.x -= vec2.x; this.y -= vec2.y;
+        return this.change();
+      } else {
+        // Return a new vector if `returnNew` is truthy
+        return new (this.constructor)(
+          this.x - vec2.x,
+          this.y - vec2.y
+        );
+      }
+    },
+
+    // Multiply this vector by the incoming `vec2`
+    multiply : function(vec2, returnNew) {
+      var x,y;
+      if ('number' !== typeof vec2) { //.x !== undef) {
+        x = vec2.x;
+        y = vec2.y;
+
+      // Handle incoming scalars
+      } else {
+        x = y = vec2;
+      }
+
+      if (!returnNew) {
+        return this.set(this.x * x, this.y * y);
+      } else {
+        return new (this.constructor)(
+          this.x * x,
+          this.y * y
+        );
+      }
+    },
+
+    // Rotate this vector. Accepts a `Rotation` or angle in radians.
+    //
+    // Passing a truthy `inverse` will cause the rotation to
+    // be reversed.
+    //
+    // If `returnNew` is truthy, a new
+    // `Vec2` will be created with the values resulting from
+    // the rotation. Otherwise the rotation will be applied
+    // to this vector directly, and this vector will be returned.
+    rotate : function(r, inverse, returnNew) {
+      var
+      x = this.x,
+      y = this.y,
+      cos = Math.cos(r),
+      sin = Math.sin(r),
+      rx, ry;
+
+      inverse = (inverse) ? -1 : 1;
+
+      rx = cos * x - (inverse * sin) * y;
+      ry = (inverse * sin) * x + cos * y;
+
+      if (returnNew) {
+        return new (this.constructor)(rx, ry);
+      } else {
+        return this.set(rx, ry);
+      }
+    },
+
+    // Calculate the length of this vector
+    length : function() {
+      var x = this.x, y = this.y;
+      return Math.sqrt(x * x + y * y);
+    },
+
+    // Get the length squared. For performance, use this instead of `Vec2#length` (if possible).
+    lengthSquared : function() {
+      var x = this.x, y = this.y;
+      return x*x+y*y;
+    },
+
+    // Return the distance betwen this `Vec2` and the incoming vec2 vector
+    // and return a scalar
+    distance : function(vec2) {
+      var x = this.x - vec2.x;
+      var y = this.y - vec2.y;
+      return Math.sqrt(x*x + y*y);
+    },
+
+    // Convert this vector into a unit vector.
+    // Returns the length.
+    normalize : function(returnNew) {
+      var length = this.length();
+
+      // Collect a ratio to shrink the x and y coords
+      var invertedLength = (length < Number.MIN_VALUE) ? 0 : 1/length;
+
+      if (!returnNew) {
+        // Convert the coords to be greater than zero
+        // but smaller than or equal to 1.0
+        return this.set(this.x * invertedLength, this.y * invertedLength);
+      } else {
+        return new (this.constructor)(this.x * invertedLength, this.y * invertedLength);
+      }
+    },
+
+    // Determine if another `Vec2`'s components match this one's
+    // also accepts 2 scalars
+    equal : function(v, w) {
+      if (w === undef) {
+        w = v.y;
+        v = v.x;
+      }
+
+      return (Vec2.clean(v) === this.x && Vec2.clean(w) === this.y);
+    },
+
+    // Return a new `Vec2` that contains the absolute value of
+    // each of this vector's parts
+    abs : function(returnNew) {
+      var x = Math.abs(this.x), y = Math.abs(this.y);
+
+      if (returnNew) {
+        return new (this.constructor)(x, y);
+      } else {
+        return this.set(x, y);
+      }
+    },
+
+    // Return a new `Vec2` consisting of the smallest values
+    // from this vector and the incoming
+    //
+    // When returnNew is truthy, a new `Vec2` will be returned
+    // otherwise the minimum values in either this or `v` will
+    // be applied to this vector.
+    min : function(v, returnNew) {
+      var
+      tx = this.x,
+      ty = this.y,
+      vx = v.x,
+      vy = v.y,
+      x = tx < vx ? tx : vx,
+      y = ty < vy ? ty : vy;
+
+      if (returnNew) {
+        return new (this.constructor)(x, y);
+      } else {
+        return this.set(x, y);
+      }
+    },
+
+    // Return a new `Vec2` consisting of the largest values
+    // from this vector and the incoming
+    //
+    // When returnNew is truthy, a new `Vec2` will be returned
+    // otherwise the minimum values in either this or `v` will
+    // be applied to this vector.
+    max : function(v, returnNew) {
+      var
+      tx = this.x,
+      ty = this.y,
+      vx = v.x,
+      vy = v.y,
+      x = tx > vx ? tx : vx,
+      y = ty > vy ? ty : vy;
+
+      if (returnNew) {
+        return new (this.constructor)(x, y);
+      } else {
+        return this.set(x, y);
+      }
+    },
+
+    // Clamp values into a range.
+    // If this vector's values are lower than the `low`'s
+    // values, then raise them.  If they are higher than
+    // `high`'s then lower them.
+    //
+    // Passing returnNew as true will cause a new Vec2 to be
+    // returned.  Otherwise, this vector's values will be clamped
+    clamp : function(low, high, returnNew) {
+      var ret = this.min(high, true).max(low);
+      if (returnNew) {
+        return ret;
+      } else {
+        return this.set(ret.x, ret.y);
+      }
+    },
+
+    // Perform linear interpolation between two vectors
+    // amount is a decimal between 0 and 1
+    lerp : function(vec, amount, returnNew) {
+      return this.add(vec.subtract(this, true).multiply(amount), returnNew);
+    },
+
+    // Get the skew vector such that dot(skew_vec, other) == cross(vec, other)
+    skew : function() {
+      // Returns a new vector.
+      return new (this.constructor)(-this.y, this.x);
+    },
+
+    // calculate the dot product between
+    // this vector and the incoming
+    dot : function(b) {
+      return Vec2.clean(this.x * b.x + b.y * this.y);
+    },
+
+    // calculate the perpendicular dot product between
+    // this vector and the incoming
+    perpDot : function(b) {
+      return Vec2.clean(this.x * b.y - this.y * b.x);
+    },
+
+    // Determine the angle between two vec2s
+    angleTo : function(vec) {
+      return Math.atan2(this.perpDot(vec), this.dot(vec));
+    },
+
+    // Divide this vector's components by a scalar
+    divide : function(vec2, returnNew) {
+      var x,y;
+      if ('number' !== typeof vec2) {
+        x = vec2.x;
+        y = vec2.y;
+
+      // Handle incoming scalars
+      } else {
+        x = y = vec2;
+      }
+
+      if (x === 0 || y === 0) {
+        throw new Error('division by zero')
+      }
+
+      if (isNaN(x) || isNaN(y)) {
+        throw new Error('NaN detected');
+      }
+
+      if (returnNew) {
+        return new (this.constructor)(this.x / x, this.y / y);
+      }
+
+      return this.set(this.x / x, this.y / y);
+    },
+
+    isPointOnLine : function(start, end) {
+      return (start.y - this.y) * (start.x - end.x) ===
+             (start.y - end.y) * (start.x - this.x);
+    },
+
+    toArray: function() {
+      return [this.x, this.y];
+    },
+
+    fromArray: function(array) {
+      return this.set(array[0], array[1]);
+    },
+    toJSON: function () {
+      return {x: this.x, y: this.y};
+    },
+    toString: function() {
+      return '(' + this.x + ', ' + this.y + ')';
+    },
+    constructor : Vec2
+  };
+
+  Vec2.fromArray = function(array, ctor) {
+    return new (ctor || Vec2)(array[0], array[1]);
+  };
+
+  // Floating point stability
+  Vec2.precision = precision || 8;
+  var p = Math.pow(10, Vec2.precision);
+
+  Vec2.clean = clean || function(val) {
+    if (isNaN(val)) {
+      throw new Error('NaN detected');
+    }
+
+    if (!isFinite(val)) {
+      throw new Error('Infinity detected');
+    }
+
+    if(Math.round(val) === val) {
+      return val;
+    }
+
+    return Math.round(val * p)/p;
+  };
+
+  Vec2.inject = inject;
+
+  if(!clean) {
+    Vec2.fast = inject(function (k) { return k; });
+
+    // Expose, but also allow creating a fresh Vec2 subclass.
+    if (typeof module !== 'undefined' && typeof module.exports == 'object') {
+      module.exports = Vec2;
+    } else {
+      window.Vec2 = window.Vec2 || Vec2;
+    }
+  }
+  return Vec2;
+})();
+
+},{}],10:[function(require,module,exports){
+if (typeof require !== 'undefined') {
+  var Vec2 = require('vec2');
+  var segseg = require('segseg');
+}
+
+
+function Segment2(start, end) {
+  if (!(this instanceof Segment2)) {
+    return new Segment2(start, end);
+  }
+
+  this.start = start || new Vec2();
+  this.end = end || new Vec2();
+
+  this.start.change(this.notify.bind(this));
+  this.end.change(this.notify.bind(this));
+
+  this._listeners = [];
+}
+
+
+Segment2.prototype.constructor = Segment2;
+
+Segment2.prototype.change = function(fn) {
+  this._listeners.push(fn);
+  return fn;
+};
+
+Segment2.prototype.ignore = function(fn) {
+
+  if (!fn) {
+    this._listeners = [];
+  } else {
+    this._listeners = this._listeners.filter(function(a) {
+      return a !== fn;
+    });
+  }
+
+};
+
+Segment2.prototype.notify = function(vec) {
+  var fns = this._listeners, l = fns.length;
+  for (var i=0; i<l; i++) {
+    fns[i](this, vec);
+  }
+};
+
+Segment2.prototype.clone = function() {
+  return new (this.constructor)(
+    new (this.start.constructor)(this.start.x, this.start.y),
+    new (this.end.constructor)(this.end.x, this.end.y)
+  );
+};
+
+Segment2.prototype.equal = function(seg) {
+  if (!seg || !seg.start || !seg.end) {
+    return false;
+  }
+
+  return seg.start.equal(this.start) && seg.end.equal(this.end);
+};
+
+Segment2.prototype.length = function() {
+  return this.start.distance(this.end);
+};
+
+Segment2.prototype.lengthSquared = function() {
+  return this.start.subtract(this.end).lengthSquared();
+};
+
+Segment2.prototype.closestPointTo = function(vec) {
+  var a = this.start;
+  var b = this.end;
+  var ab = b.subtract(a, true);
+  var veca = vec.subtract(a, true);
+  var vecadot = veca.dot(ab);
+  var abdot = ab.dot(ab);
+
+  var t = Math.min(Math.max(vecadot/abdot, 0), 1);
+
+  if (isNaN(t)) {
+    t = 0;
+  }
+
+  var point = ab.multiply(t).add(a);
+  var length = vec.subtract(point, true).lengthSquared();
+
+  return point;
+};
+
+Segment2.prototype.containsPoint = function(vec) {
+
+  var s = this.start, e = this.end;
+  var dx = (s.x <= vec.x && e.x >= vec.x) || (s.x >= vec.x && e.x <= vec.x);
+  var dy = (s.y <= vec.y && e.y >= vec.y) || (s.y >= vec.y && e.y <= vec.y);
+  if (dx && dy) {
+    var a =  ((e.x - s.x) * (vec.y - s.y)) - ((vec.x - s.x) * (e.y - s.y));
+    return Vec2.clean(a) === 0;
+  }
+
+  return false;
+};
+
+Segment2.prototype.midpoint = function() {
+  return this.start.subtract(this.end, true).divide(2).add(this.end);
+};
+
+Segment2.prototype.slope = function() {
+  var dy = this.end.y - this.start.y;
+  var dx = this.end.x - this.start.x;
+
+  if (!dx) {
+    return Infinity;
+  }
+
+  return Vec2.clean(dy/dx);
+};
+
+Segment2.prototype.rotate = function(rads, origin, returnNew) {
+
+  if (origin === true) {
+    returnNew = true;
+    origin = null;
+  }
+
+  if (!origin) {
+    origin = this.midpoint();
+  }
+
+  var start = this.start.subtract(origin, true).rotate(rads);
+  var end = this.end.subtract(origin, true).rotate(rads);
+
+  start.add(origin);
+  end.add(origin);
+
+  if (returnNew) {
+    return new Segment2(start, end);
+  } else {
+    this.start.set(start.x, start.y);
+    this.end.set(end.x, end.y);
+    return this;
+  }
+};
+
+Segment2.prototype.intersect = function(seg) {
+  if (!seg || !seg.start || !seg.end) {
+    return false;
+  }
+
+  var isect = segseg(this.start, this.end, seg.start, seg.end);
+  if (!isect || isect === true) {
+    return isect;
+  } else {
+    return Vec2.fromArray(isect);
+  }
+};
+
+Segment2.prototype.collinear = function(seg) {
+  var s = this.start.perpDot(seg.end);
+  var e = this.end.perpDot(seg.start);
+  return s-e === 0;
+};
+
+Segment2.prototype.parallel = function(seg) {
+  return this.start.subtract(this.end, true).abs().normalize().equal(
+    seg.start.subtract(seg.end, true).abs().normalize()
+  );
+}
+
+if (typeof module !== "undefined" && typeof module.exports == "object") {
+  module.exports = Segment2;
+}
+
+if (typeof window !== "undefined") {
+  window.Segment2 = window.Segment2 || Segment2;
+}
+
+
+},{"segseg":8,"vec2":9}],11:[function(require,module,exports){
+;(function inject(clean, precision, undef) {
+
+  var isArray = function (a) {
+    return Object.prototype.toString.call(a) === "[object Array]";
+  };
+
+  var defined = function(a) {
+    return a !== undef;
+  };
+
+  function Vec2(x, y) {
+    if (!(this instanceof Vec2)) {
+      return new Vec2(x, y);
+    }
+
+    if (isArray(x)) {
+      y = x[1];
+      x = x[0];
+    } else if('object' === typeof x && x) {
+      y = x.y;
+      x = x.x;
+    }
+
+    this.x = Vec2.clean(x || 0);
+    this.y = Vec2.clean(y || 0);
+  }
+
+  Vec2.prototype = {
+    change : function(fn) {
+      if (typeof fn === 'function') {
+        if (this.observers) {
+          this.observers.push(fn);
+        } else {
+          this.observers = [fn];
+        }
+      } else if (this.observers && this.observers.length) {
+        for (var i=this.observers.length-1; i>=0; i--) {
+          this.observers[i](this, fn);
+        }
+      }
+
+      return this;
+    },
+
+    ignore : function(fn) {
+      if (this.observers) {
+        if (!fn) {
+          this.observers = [];
+        } else {
+          var o = this.observers, l = o.length;
+          while(l--) {
+            o[l] === fn && o.splice(l, 1);
+          }
+        }
+      }
+      return this;
+    },
+
+    // set x and y
+    set: function(x, y, notify) {
+      if('number' != typeof x) {
+        notify = y;
+        y = x.y;
+        x = x.x;
+      }
+
+      if(this.x === x && this.y === y) {
+        return this;
+      }
+
+      var orig = null;
+      if (notify !== false && this.observers && this.observers.length) {
+        orig = this.clone();
+      }
+
+      this.x = Vec2.clean(x);
+      this.y = Vec2.clean(y);
+
+      if(notify !== false) {
+        return this.change(orig);
+      }
+    },
+
+    // reset x and y to zero
+    zero : function() {
+      return this.set(0, 0);
+    },
+
+    // return a new vector with the same component values
+    // as this one
+    clone : function() {
+      return new (this.constructor)(this.x, this.y);
+    },
+
+    // negate the values of this vector
+    negate : function(returnNew) {
+      if (returnNew) {
+        return new (this.constructor)(-this.x, -this.y);
+      } else {
+        return this.set(-this.x, -this.y);
+      }
+    },
+
+    // Add the incoming `vec2` vector to this vector
+    add : function(x, y, returnNew) {
+
+      if (typeof x != 'number') {
+        returnNew = y;
+        if (isArray(x)) {
+          y = x[1];
+          x = x[0];
+        } else {
+          y = x.y;
+          x = x.x;
+        }
+      }
+
+      x += this.x;
+      y += this.y;
+
+
+      if (!returnNew) {
+        return this.set(x, y);
+      } else {
+        // Return a new vector if `returnNew` is truthy
+        return new (this.constructor)(x, y);
+      }
+    },
+
+    // Subtract the incoming `vec2` from this vector
+    subtract : function(x, y, returnNew) {
+      if (typeof x != 'number') {
+        returnNew = y;
+        if (isArray(x)) {
+          y = x[1];
+          x = x[0];
+        } else {
+          y = x.y;
+          x = x.x;
+        }
+      }
+
+      x = this.x - x;
+      y = this.y - y;
+
+      if (!returnNew) {
+        return this.set(x, y);
+      } else {
+        // Return a new vector if `returnNew` is truthy
+        return new (this.constructor)(x, y);
+      }
+    },
+
+    // Multiply this vector by the incoming `vec2`
+    multiply : function(x, y, returnNew) {
+      if (typeof x != 'number') {
+        returnNew = y;
+        if (isArray(x)) {
+          y = x[1];
+          x = x[0];
+        } else {
+          y = x.y;
+          x = x.x;
+        }
+      } else if (typeof y != 'number') {
+        returnNew = y;
+        y = x;
+      }
+
+      x *= this.x;
+      y *= this.y;
+
+      if (!returnNew) {
+        return this.set(x, y);
+      } else {
+        return new (this.constructor)(x, y);
+      }
+    },
+
+    // Rotate this vector. Accepts a `Rotation` or angle in radians.
+    //
+    // Passing a truthy `inverse` will cause the rotation to
+    // be reversed.
+    //
+    // If `returnNew` is truthy, a new
+    // `Vec2` will be created with the values resulting from
+    // the rotation. Otherwise the rotation will be applied
+    // to this vector directly, and this vector will be returned.
+    rotate : function(r, inverse, returnNew) {
+      var
+      x = this.x,
+      y = this.y,
+      cos = Math.cos(r),
+      sin = Math.sin(r),
+      rx, ry;
+
+      inverse = (inverse) ? -1 : 1;
+
+      rx = cos * x - (inverse * sin) * y;
+      ry = (inverse * sin) * x + cos * y;
+
+      if (returnNew) {
+        return new (this.constructor)(rx, ry);
+      } else {
+        return this.set(rx, ry);
+      }
+    },
+
+    // Calculate the length of this vector
+    length : function() {
+      var x = this.x, y = this.y;
+      return Math.sqrt(x * x + y * y);
+    },
+
+    // Get the length squared. For performance, use this instead of `Vec2#length` (if possible).
+    lengthSquared : function() {
+      var x = this.x, y = this.y;
+      return x*x+y*y;
+    },
+
+    // Return the distance betwen this `Vec2` and the incoming vec2 vector
+    // and return a scalar
+    distance : function(vec2) {
+      var x = this.x - vec2.x;
+      var y = this.y - vec2.y;
+      return Math.sqrt(x*x + y*y);
+    },
+
+    // Given Array of Vec2, find closest to this Vec2.
+    nearest : function(others) {
+      var
+      shortestDistance = Number.MAX_VALUE,
+      nearest = null,
+      currentDistance;
+
+      for (var i = others.length - 1; i >= 0; i--) {
+        currentDistance = this.distance(others[i]);
+        if (currentDistance <= shortestDistance) {
+          shortestDistance = currentDistance;
+          nearest = others[i];
+        }
+      }
+
+      return nearest;
+    },
+
+    // Convert this vector into a unit vector.
+    // Returns the length.
+    normalize : function(returnNew) {
+      var length = this.length();
+
+      // Collect a ratio to shrink the x and y coords
+      var invertedLength = (length < Number.MIN_VALUE) ? 0 : 1/length;
+
+      if (!returnNew) {
+        // Convert the coords to be greater than zero
+        // but smaller than or equal to 1.0
+        return this.set(this.x * invertedLength, this.y * invertedLength);
+      } else {
+        return new (this.constructor)(this.x * invertedLength, this.y * invertedLength);
+      }
+    },
+
+    // Determine if another `Vec2`'s components match this one's
+    // also accepts 2 scalars
+    equal : function(v, w) {
+      if (typeof v != 'number') {
+        if (isArray(v)) {
+          w = v[1];
+          v = v[0];
+        } else {
+          w = v.y;
+          v = v.x;
+        }
+      }
+
+      return (Vec2.clean(v) === this.x && Vec2.clean(w) === this.y);
+    },
+
+    // Return a new `Vec2` that contains the absolute value of
+    // each of this vector's parts
+    abs : function(returnNew) {
+      var x = Math.abs(this.x), y = Math.abs(this.y);
+
+      if (returnNew) {
+        return new (this.constructor)(x, y);
+      } else {
+        return this.set(x, y);
+      }
+    },
+
+    // Return a new `Vec2` consisting of the smallest values
+    // from this vector and the incoming
+    //
+    // When returnNew is truthy, a new `Vec2` will be returned
+    // otherwise the minimum values in either this or `v` will
+    // be applied to this vector.
+    min : function(v, returnNew) {
+      var
+      tx = this.x,
+      ty = this.y,
+      vx = v.x,
+      vy = v.y,
+      x = tx < vx ? tx : vx,
+      y = ty < vy ? ty : vy;
+
+      if (returnNew) {
+        return new (this.constructor)(x, y);
+      } else {
+        return this.set(x, y);
+      }
+    },
+
+    // Return a new `Vec2` consisting of the largest values
+    // from this vector and the incoming
+    //
+    // When returnNew is truthy, a new `Vec2` will be returned
+    // otherwise the minimum values in either this or `v` will
+    // be applied to this vector.
+    max : function(v, returnNew) {
+      var
+      tx = this.x,
+      ty = this.y,
+      vx = v.x,
+      vy = v.y,
+      x = tx > vx ? tx : vx,
+      y = ty > vy ? ty : vy;
+
+      if (returnNew) {
+        return new (this.constructor)(x, y);
+      } else {
+        return this.set(x, y);
+      }
+    },
+
+    // Clamp values into a range.
+    // If this vector's values are lower than the `low`'s
+    // values, then raise them.  If they are higher than
+    // `high`'s then lower them.
+    //
+    // Passing returnNew as true will cause a new Vec2 to be
+    // returned.  Otherwise, this vector's values will be clamped
+    clamp : function(low, high, returnNew) {
+      var ret = this.min(high, true).max(low);
+      if (returnNew) {
+        return ret;
+      } else {
+        return this.set(ret.x, ret.y);
+      }
+    },
+
+    // Perform linear interpolation between two vectors
+    // amount is a decimal between 0 and 1
+    lerp : function(vec, amount, returnNew) {
+      return this.add(vec.subtract(this, true).multiply(amount), returnNew);
+    },
+
+    // Get the skew vector such that dot(skew_vec, other) == cross(vec, other)
+    skew : function(returnNew) {
+      if (!returnNew) {
+        return this.set(-this.y, this.x)
+      } else {
+        return new (this.constructor)(-this.y, this.x);
+      }
+    },
+
+    // calculate the dot product between
+    // this vector and the incoming
+    dot : function(b) {
+      return Vec2.clean(this.x * b.x + b.y * this.y);
+    },
+
+    // calculate the perpendicular dot product between
+    // this vector and the incoming
+    perpDot : function(b) {
+      return Vec2.clean(this.x * b.y - this.y * b.x);
+    },
+
+    // Determine the angle between two vec2s
+    angleTo : function(vec) {
+      return Math.atan2(this.perpDot(vec), this.dot(vec));
+    },
+
+    // Divide this vector's components by a scalar
+    divide : function(x, y, returnNew) {
+      if (typeof x != 'number') {
+        returnNew = y;
+        if (isArray(x)) {
+          y = x[1];
+          x = x[0];
+        } else {
+          y = x.y;
+          x = x.x;
+        }
+      } else if (typeof y != 'number') {
+        returnNew = y;
+        y = x;
+      }
+
+      if (x === 0 || y === 0) {
+        throw new Error('division by zero')
+      }
+
+      if (isNaN(x) || isNaN(y)) {
+        throw new Error('NaN detected');
+      }
+
+      if (returnNew) {
+        return new (this.constructor)(this.x / x, this.y / y);
+      }
+
+      return this.set(this.x / x, this.y / y);
+    },
+
+    isPointOnLine : function(start, end) {
+      return (start.y - this.y) * (start.x - end.x) ===
+             (start.y - end.y) * (start.x - this.x);
+    },
+
+    toArray: function() {
+      return [this.x, this.y];
+    },
+
+    fromArray: function(array) {
+      return this.set(array[0], array[1]);
+    },
+    toJSON: function () {
+      return {x: this.x, y: this.y};
+    },
+    toString: function() {
+      return '(' + this.x + ', ' + this.y + ')';
+    },
+    constructor : Vec2
+  };
+
+  Vec2.fromArray = function(array, ctor) {
+    return new (ctor || Vec2)(array[0], array[1]);
+  };
+
+  // Floating point stability
+  Vec2.precision = precision || 8;
+  var p = Math.pow(10, Vec2.precision);
+
+  Vec2.clean = clean || function(val) {
+    if (isNaN(val)) {
+      throw new Error('NaN detected');
+    }
+
+    if (!isFinite(val)) {
+      throw new Error('Infinity detected');
+    }
+
+    if(Math.round(val) === val) {
+      return val;
+    }
+
+    return Math.round(val * p)/p;
+  };
+
+  Vec2.inject = inject;
+
+  if(!clean) {
+    Vec2.fast = inject(function (k) { return k; });
+
+    // Expose, but also allow creating a fresh Vec2 subclass.
+    if (typeof module !== 'undefined' && typeof module.exports == 'object') {
+      module.exports = Vec2;
+    } else {
+      window.Vec2 = window.Vec2 || Vec2;
+    }
+  }
+  return Vec2;
+})();
+
+},{}],12:[function(require,module,exports){
+'use strict'
+
+module.exports = findCover
+
+var coverDistance = require('./is-covered')
+
+function len2(a, b) {
+  return Math.pow(a[0]-b[0], 2) + Math.pow(a[1]-b[1], 2)
+}
+
+function findCover(lines, h) {
+  var cover = []
+  var ids   = new Array(lines.length)
+  for(var i=0; i<lines.length; ++i) {
+    ids[i] = i
+  }
+
+  ids.sort(function(a,b) {
+    return (lines[a][0][0] - lines[b][0][0]) ||
+           (lines[a][1][0] - lines[b][1][0])
+  })
+
+  function longestLine(ids) {
+    var l2 = 0.0
+    var longest = 0
+    for(var i=0; i<ids.length; ++i) {
+      var j = ids[i]
+      var L = lines[j]
+      var l2i = len2(L[0], L[1])
+      if(l2i > l2) {
+        l2 = l2i
+        longest = j
+      }
+    }
+    return longest
+  }
+
+  function filterCover(ids, f) {
+    var ptr = 0
+    for(var i=0; i<ids.length; ++i) {
+      var j = ids[i]
+      var e = lines[j]
+      if(coverDistance(f[0][0], f[0][1], f[1][0], f[1][1],
+                       e[0][0], e[0][1], e[1][0], e[1][1]) > h) {
+        ids[ptr++] = j
+      }
+    }
+    ids.length = ptr
+  }
+
+  function partitionRecursive(ids) {
+    if(ids.length <= 0) {
+      return
+    }
+    var longest = longestLine(ids)
+    cover.push(longest)
+    filterCover(ids, lines[longest])
+    partitionRecursive(ids.slice(0, ids.length>>>1))
+    partitionRecursive(ids.slice(ids.length>>>1, ids.length))
+  }
+  partitionRecursive(ids)
+
+  return cover
+}
+
+},{"./is-covered":3}],13:[function(require,module,exports){
+'use strict'
+
+var vec2 = require('vec2')
+var segment2 = require('segment2')
+var mouseChange = require('mouse-change')
+var fit = require('canvas-fit')
+var coverDistance = require('../is-covered')
+
+var ALGORITHMS = {
+  'Dumb O(n)': function(lines) {
+    var ids = new Array(lines.length)
+    for(var i=0; i<lines.length; ++i) {
+      ids[i] = i
+    }
+    return ids
+  },
+  'Divide & conquer O(n log n)': require('../random-longest'),
+  'Greedy, longest O(n^2)': require('../greedy-longest'),
+  'Greedy, max cover O(n^3)': require('../greedy-max-cover')
+}
+
+//Create canvas and context
+var canvas = document.createElement('canvas')
+var context = canvas.getContext('2d')
+document.body.appendChild(canvas)
+window.addEventListener('resize', fit(canvas), false)
+
+var optionDiv = document.createElement('div')
+optionDiv.style.position = 'absolute'
+optionDiv.style.left = '5px'
+optionDiv.style.top = '5px'
+optionDiv.style.width = '30%'
+optionDiv.style['z-index'] = '10'
+document.body.appendChild(optionDiv)
+
+var numEdgeDiv = document.createElement('p')
+
+var NUM_EDGES = 50
+
+var ALGORITHM   = ALGORITHMS[Object.keys(ALGORITHMS)[0]]
+var SCALE       = 0.1
+var edges       = [[[0,Math.random()], [Math.random()/NUM_EDGES,Math.random()]]]
+var cover       = []
+
+for(var i=1; i<NUM_EDGES; ++i) {
+  var e0 = edges[i-1][1]
+  var x0 = e0[0]
+  var y0 = e0[1]
+  var x1 = (i+Math.random()) / NUM_EDGES
+  var y1 = Math.random()
+  edges.push([[x0,y0], [x1,y1]])
+}
+
+function dataChanged() {
+  cover = ALGORITHM(edges, SCALE)
+  numEdgeDiv.innerHTML = 'cover size: ' + cover.length
+}
+
+dataChanged()
+
+var scaleSlider = document.createElement('input')
+scaleSlider.type = 'range'
+scaleSlider.min  = 0
+scaleSlider.max  = 1
+scaleSlider.step = 0.001
+scaleSlider.value = SCALE
+scaleSlider.style.width = '100%'
+
+function scaleChanged() {
+  SCALE = +scaleSlider.value
+  dataChanged()
+}
+
+scaleSlider.addEventListener('input', scaleChanged)
+scaleSlider.addEventListener('change', scaleChanged)
+var scaleP = document.createElement('p')
+scaleP.appendChild(scaleSlider)
+optionDiv.appendChild(scaleP)
+
+var radioForm = document.createElement('form')
+Object.keys(ALGORITHMS).forEach(function(algname, i) {
+  var line = document.createElement('p')
+  var button = document.createElement('input')
+  button.type = 'radio'
+  button.name = 'algorithm'
+  button.checked = !i
+  line.appendChild(button)
+  button.addEventListener('change', function() {
+    if(button.checked) {
+      ALGORITHM = ALGORITHMS[algname]
+      dataChanged()
+    }
+  })
+  line.appendChild(document.createTextNode(algname))
+  radioForm.appendChild(line)
+})
+optionDiv.appendChild(radioForm)
+
+
+var resetButton = document.createElement('input')
+resetButton.type = 'button'
+resetButton.value = 'reset'
+resetButton.addEventListener('click', function() {
+  edges.length = 0
+  dataChanged()
+})
+var resetP = document.createElement('p')
+resetP.appendChild(resetButton)
+optionDiv.appendChild(resetP)
+optionDiv.appendChild(numEdgeDiv)
+
+var description = document.createElement('p')
+description.innerHTML = 'drag to add edges'
+optionDiv.appendChild(description)
+
+function edgeDistance(a, b, c) {
+  var p = vec2(c[0], c[1])
+  return segment2(vec2(a[0], a[1]), vec2(b[0], b[1])).closestPointTo(p).distance(p)
+}
+
+var lastButtons = 0,
+  startPoint = null,
+  highlightEdge = -1,
+  activeEdge = null
+mouseChange(canvas, function(buttons, x, y) {
+  var s = Math.min(canvas.width, canvas.height)
+  var lx = (x - canvas.width/2)  / s + 0.5
+  var ly = (y - canvas.height/2) / s + 0.5
+  var closestDist = 0.0125
+  highlightEdge = -1
+
+  for(var i=0; i<edges.length; ++i) {
+    var e = edges[i]
+    var d2 = edgeDistance(e[0], e[1], [lx, ly])
+    if(d2 < closestDist) {
+      highlightEdge = i
+      closestDist = d2
+    }
+  }
+
+  if(!lastButtons && !!buttons) {
+    if(highlightEdge >= 0) {
+      edges.splice(highlightEdge, 1)
+      activeEdge = null
+      highlightEdge = -1
+      dataChanged()
+    } else {
+      startPoint = [lx, ly]
+      activeEdge = [ [lx, ly], [lx, ly] ]
+    }
+  } else if(!!lastButtons && !buttons) {
+    if(activeEdge) {
+      edges.push(activeEdge)
+      activeEdge = null
+      highlightEdge = -1
+      dataChanged()
+    }
+  } else if(!!buttons) {
+    if(activeEdge) {
+      activeEdge[1] = [lx, ly]
+    }
+  }
+  lastButtons = buttons
+})
+
+function line(a, b) {
+  var x0 = a[0]-0.5
+  var y0 = a[1]-0.5
+  var x1 = b[0]-0.5
+  var y1 = b[1]-0.5
+  var w = canvas.width
+  var h = canvas.height
+  var s = Math.min(w, h)
+  context.beginPath()
+  context.moveTo(s*x0 + w/2, s*y0 + h/2)
+  context.lineTo(s*x1 + w/2, s*y1 + h/2)
+  context.stroke()
+}
+
+function circle(x, y, r) {
+  var w = canvas.width
+  var h = canvas.height
+  var s = Math.min(w, h)
+  context.beginPath()
+  context.moveTo(s*x, s*y)
+  context.arc(s*(x-0.5) + w/2, s*(y-0.5) + h/2, r, 0.0, 2.0*Math.PI)
+  context.fill()
+}
+
+function capsule(a, b, radius) {
+
+  var x0 = a[0]-0.5
+  var y0 = a[1]-0.5
+  var x1 = b[0]-0.5
+  var y1 = b[1]-0.5
+  var w = canvas.width
+  var h = canvas.height
+  var s = Math.min(w, h)
+
+  x0 = s*x0 + w/2
+  y0 = s*y0 + h/2
+  x1 = s*x1 + w/2
+  y1 = s*y1 + h/2
+
+  var dx = x1 - x0
+  var dy = y1 - y0
+
+  var l = Math.sqrt(Math.pow(dx, 2) + Math.pow(dy, 2))
+
+  var ox = s * dx / l * radius
+  var oy = s * dy / l * radius
+
+  var nx =  oy
+  var ny = -ox
+
+  context.beginPath()
+
+  context.moveTo(x0+nx,y0+ny)
+
+  context.lineTo(x1+nx,y1+ny)
+  context.arcTo(x1+nx+ox,y1+ny+oy, x1+ox,y1+oy, s*radius)
+  context.arcTo(x1+ox-nx,y1+oy-ny, x1-nx,y1-ny, s*radius)
+
+  context.lineTo(x0-nx,y0-ny)
+  context.arcTo(x0-nx-ox,y0-ny-oy, x0-ox,y0-oy, s*radius)
+  context.arcTo(x0+nx-ox,y0+ny-oy, x0+nx,y0+ny, s*radius)
+
+  context.fill()
+}
+
+var EDGE_PALETTE = [
+  'rgba(255,0,0,0.25)',
+  'rgba(0,255,0,0.25)',
+  'rgba(0,0,255,0.25)',
+  'rgba(255,255,0,0.25)',
+  'rgba(255,0,255,0.25)',
+  'rgba(0,255,255,0.25)'
+]
+
+function draw() {
+  requestAnimationFrame(draw)
+
+  var w = canvas.width
+  var h = canvas.height
+  context.fillStyle = '#fff'
+  context.fillRect(0, 0, w, h)
+
+  context.strokeStyle = '#aaa'
+  for(var i=0; i<edges.length; ++i) {
+    var e = edges[i]
+    var a = e[0]
+    var b = e[1]
+    context.lineWidth = 1
+    line(a, b)
+  }
+
+  context.fillStyle = 'rgba(0,0,255,0.1)'
+  context.strokeStyle = '#000'
+  for(var i=0; i<cover.length; ++i) {
+    var e = edges[cover[i]]
+    capsule(e[0], e[1], SCALE)
+    line(e[0], e[1])
+  }
+
+  if(!!activeEdge) {
+    context.strokeStyle = '#f00'
+    line(activeEdge[0], activeEdge[1])
+  } else if(highlightEdge >= 0) {
+    var e = edges[highlightEdge]
+    context.strokeStyle = '#f00'
+    for(var i=0; i<edges.length; ++i) {
+      var f = edges[i]
+      var dist = coverDistance(e[0][0], e[0][1], e[1][0], e[1][1],
+                               f[0][0], f[0][1], f[1][0], f[1][1])
+      if(dist < SCALE) {
+        line(f[0], f[1])
+      }
+    }
+    context.fillStyle = 'rgba(255,0,0,0.15)'
+    capsule(e[0], e[1], SCALE)
+  }
+}
+
+draw()
+
+},{"../greedy-longest":1,"../greedy-max-cover":2,"../is-covered":3,"../random-longest":12,"canvas-fit":4,"mouse-change":6,"segment2":10,"vec2":11}]},{},[13]);
+</script>
+</html>
